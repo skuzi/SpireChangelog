@@ -1,0 +1,25 @@
+<Project Sdk="Godot.NET.Sdk/4.6.1">
+    <PropertyGroup>
+        <TargetFramework>net9.0</TargetFramework>
+        <EnableDynamicLoading>true</EnableDynamicLoading>
+        <Nullable>enable</Nullable>
+        <NuGetAudit>false</NuGetAudit>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <Reference Include="sts2">
+            <HintPath>lib\sts2.dll</HintPath>
+            <Private>False</Private>
+        </Reference>
+
+        <Reference Include="0Harmony">
+            <HintPath>lib\0Harmony.dll</HintPath>
+            <Private>False</Private>
+        </Reference>
+    </ItemGroup>
+
+    <Target Name="CopyToBuildFolder" AfterTargets="Build">
+        <MakeDir Directories="$(ProjectDir)build" />
+        <Copy SourceFiles="$(TargetPath)" DestinationFolder="$(ProjectDir)build" />
+    </Target>
+</Project>
