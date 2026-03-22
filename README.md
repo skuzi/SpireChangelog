@@ -15,12 +15,11 @@ Only the 3 most recent patches are tracked. The mod is informational only (`affe
 
 ## Installation
 
-1. Download the latest release
+1. Download the latest release zip
 2. In Steam, right-click **Slay the Spire 2** → **Manage** → **Browse Local Files** to open the game folder
-3. Create a `mods/SpireChangelog/` folder inside the game directory
    - On macOS, navigate into `SlayTheSpire2.app/Contents/MacOS/` first
-4. Extract `SpireChangelog.dll` and `SpireChangelog.json` into that folder
-5. Launch the game — the mod loads automatically
+3. Extract the zip and copy the `SpireChangelog/` folder into `mods/` (create it if it doesn't exist)
+4. Launch the game — the mod loads automatically
 
 ## Building from source
 
