@@ -2,31 +2,30 @@ using Godot;
 using HarmonyLib;
 using MegaCrit.Sts2.Core.Entities.Cards;
 using MegaCrit.Sts2.Core.Nodes.Cards;
+using MegaCrit.Sts2.Core.Nodes.Cards.Holders;
 using SpireChangelog.Data;
 
 namespace SpireChangelog.Patches;
 
 /// <summary>
 /// Adds an independent gold border glow on cards modified in recent patches.
-/// Only shown in deck/pile views and card rewards, not during combat animations.
+/// Shown in card grids (library, pile viewers, reward/shop screens) but not
+/// on cards flying around during combat animations.
 /// </summary>
 [HarmonyPatch(typeof(NCard), "UpdateVisuals")]
 public static class CardHighlightPatch
 {
     private const string OverlayName = "SpireChangelogGlow";
 
-    // Only show border in these contexts
-    private static bool ShouldShowBorder(PileType pileType) => pileType switch
+    /// <summary>
+    /// Cards in a grid holder (pile viewer, library, reward screen) should glow.
+    /// Cards loose in combat UI (flying between piles) should not.
+    /// </summary>
+    private static bool IsInCardGrid(NCard card)
     {
-        PileType.None => true,   // card library, rewards, shop
-        PileType.Draw => true,
-        PileType.Discard => true,
-        PileType.Exhaust => true,
-        PileType.Deck => true,
-        PileType.Hand => false,  // in hand during combat
-        PileType.Play => false,  // being played animation
-        _ => false
-    };
+        var parent = card.GetParent();
+        return parent is NGridCardHolder;
+    }
 
     private static void RemoveOverlay(Node parent)
     {
@@ -43,7 +42,10 @@ public static class CardHighlightPatch
         if (ChangelogDatabase.Instance == null) return;
         ChangelogDatabase.Instance.EnsureNameLookups();
 
-        if (!ShouldShowBorder(pileType))
+        // Show glow for PileType.None (library, shop, rewards, inspect) always,
+        // or for combat pile types only when displayed in a card grid (pile viewer)
+        bool show = pileType == PileType.None || IsInCardGrid(__instance);
+        if (!show)
         {
             RemoveOverlay(__instance);
             return;

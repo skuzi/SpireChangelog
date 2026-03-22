@@ -1,9 +1,14 @@
+using System;
 using System.Collections.Generic;
 using System.Text;
 using Godot;
 using HarmonyLib;
+using MegaCrit.Sts2.Core.Assets;
 using MegaCrit.Sts2.Core.HoverTips;
+using MegaCrit.Sts2.Core.Logging;
+using MegaCrit.Sts2.Core.Nodes.HoverTips;
 using MegaCrit.Sts2.Core.Runs;
+using MegaCrit.Sts2.addons.mega_text;
 using SpireChangelog.Data;
 
 namespace SpireChangelog.Helpers;
@@ -83,5 +88,48 @@ public static class ChangelogUiHelper
             sb.Append($"[{change.Version}] {change.ChangeText}");
         }
         return sb.ToString();
+    }
+
+    /// <summary>
+    /// Append changelog tip nodes to an existing NHoverTipSet's text container.
+    /// Used by both the inspect screen patch and the card holder hover tip patch.
+    /// </summary>
+    public static void AppendChangelogTips(Control owner, List<EntityChange> changes, string? energyPrefix = null)
+    {
+        try
+        {
+            var activeField = AccessTools.Field(typeof(NHoverTipSet), "_activeHoverTips");
+            if (activeField?.GetValue(null) is not Dictionary<Control, NHoverTipSet> activeHoverTips)
+                return;
+
+            if (!activeHoverTips.TryGetValue(owner, out var hoverTipSet))
+                return;
+
+            var containerField = AccessTools.Field(typeof(NHoverTipSet), "_textHoverTipContainer");
+            var container = containerField?.GetValue(hoverTipSet) as Control;
+            if (container == null) return;
+
+            if (container.HasMeta("SpireChangelog_Added")) return;
+            container.SetMeta("SpireChangelog_Added", true);
+
+            var tipScene = PreloadManager.Cache.GetScene("res://scenes/ui/hover_tip.tscn");
+
+            foreach (var change in changes)
+            {
+                var tipNode = tipScene.Instantiate<Control>(PackedScene.GenEditState.Disabled);
+                tipNode.GetNode<MegaLabel>("%Title").SetTextAutoSize(change.Version);
+                tipNode.GetNode<MegaRichTextLabel>("%Description")
+                    .SetTextAutoSize(ResolveEnergyIcons(change.ChangeText, energyPrefix));
+                tipNode.GetNode<TextureRect>("%Icon").Visible = false;
+
+                container.AddChild(tipNode);
+                tipNode.ResetSize();
+                container.Size = new Vector2(container.Size.X, container.Size.Y + tipNode.Size.Y + 5f);
+            }
+        }
+        catch (Exception ex)
+        {
+            Log.Error($"[SpireChangelog] AppendChangelogTips error: {ex.Message}");
+        }
     }
 }
