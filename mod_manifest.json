@@ -1,7 +1,7 @@
 {
     "id": "SpireChangelog",
     "name": "Spire Changelog",
-    "version": "0.1.1",
+    "version": "0.1.2",
     "author": "kuzyaka",
     "description": "Shows card, relic, and enemy balance changes from recent patches in-game. Right-click cards/relics to see patch history, hover enemies to see what changed.",
     "dependencies": [],

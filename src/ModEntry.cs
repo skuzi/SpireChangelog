@@ -16,7 +16,7 @@ namespace SpireChangelog;
 public static class ModEntry
 {
     /// <summary>Keep in sync with mod_manifest.json "version" field.</summary>
-    public const string Version = "0.1.1";
+    public const string Version = "0.1.2";
 
     public static Harmony? Harmony { get; private set; }
 

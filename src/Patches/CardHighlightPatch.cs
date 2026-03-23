@@ -3,6 +3,7 @@ using HarmonyLib;
 using MegaCrit.Sts2.Core.Entities.Cards;
 using MegaCrit.Sts2.Core.Nodes.Cards;
 using MegaCrit.Sts2.Core.Nodes.Cards.Holders;
+using MegaCrit.Sts2.Core.Nodes.CommonUi;
 using SpireChangelog.Data;
 
 namespace SpireChangelog.Patches;
@@ -10,22 +11,32 @@ namespace SpireChangelog.Patches;
 /// <summary>
 /// Adds an independent gold border glow on cards modified in recent patches.
 /// Shown in card grids (library, pile viewers, reward/shop screens) but not
-/// on cards flying around during combat animations.
+/// on cards flying around during combat or fly-to-deck animations.
 /// </summary>
 [HarmonyPatch(typeof(NCard), "UpdateVisuals")]
 public static class CardHighlightPatch
 {
     private const string OverlayName = "SpireChangelogGlow";
 
-    /// <summary>
-    /// Cards in a grid holder (pile viewer, library, reward screen) should glow.
-    /// Cards loose in combat UI (flying between piles) should not.
-    /// </summary>
     private static bool IsInCardGrid(NCard card)
     {
         var parent = card.GetParent();
         return parent is NGridCardHolder;
     }
+
+    /// <summary>
+    /// Card is inside a VFX node (upgrade sparkle, fly-to-deck, transform, etc).
+    /// Checks parent and grandparent since VFX may wrap cards in layout containers.
+    /// </summary>
+    private static bool IsInVfx(NCard card)
+    {
+        var parent = card.GetParent();
+        if (parent is Node2D) return true;
+        var grandparent = parent?.GetParent();
+        return grandparent is Node2D;
+    }
+
+    internal static void RemoveGlow(Node parent) => RemoveOverlay(parent);
 
     private static void RemoveOverlay(Node parent)
     {
@@ -42,9 +53,10 @@ public static class CardHighlightPatch
         if (ChangelogDatabase.Instance == null) return;
         ChangelogDatabase.Instance.EnsureNameLookups();
 
-        // Show glow for PileType.None (library, shop, rewards, inspect) always,
+        // Show glow for PileType.None (library, shop, rewards, inspect) unless in VFX,
         // or for combat pile types only when displayed in a card grid (pile viewer)
-        bool show = pileType == PileType.None || IsInCardGrid(__instance);
+        bool show = (pileType == PileType.None && !IsInVfx(__instance))
+                    || IsInCardGrid(__instance);
         if (!show)
         {
             RemoveOverlay(__instance);
@@ -85,5 +97,18 @@ public static class CardHighlightPatch
         __instance.AddChild(overlay);
         // Move behind card content so it renders as a background glow
         __instance.MoveChild(overlay, 0);
+    }
+}
+
+/// <summary>
+/// Remove glow overlay when a card is reparented for fly-to-deck animation
+/// (covers smith, shop purchase, reward pick, and any other card acquisition).
+/// </summary>
+[HarmonyPatch(typeof(NGlobalUi), nameof(NGlobalUi.ReparentCard))]
+public static class CardReparentGlowPatch
+{
+    static void Postfix(NCard card)
+    {
+        CardHighlightPatch.RemoveGlow(card);
     }
 }
